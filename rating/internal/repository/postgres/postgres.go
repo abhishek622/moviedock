@@ -74,8 +74,14 @@ func (r *Repository) Get(ctx context.Context, recordID model.RecordID, recordTyp
 // Put adds a rating for a given record.
 func (r *Repository) Put(ctx context.Context, recordID model.RecordID, recordType model.RecordType, rating *model.Rating) error {
 	_, err := r.db.ExecContext(ctx, `INSERT INTO ratings (record_id, record_type, user_id, value) VALUES ($1, $2, $3, $4)
-	ON CONFLICT (record_id, record_type, user_id) DO UPDATE
+	ON CONFLICT (record_id, user_id) DO UPDATE
 	SET value = EXCLUDED.value, record_type = EXCLUDED.record_type`,
 		recordID, recordType, rating.UserID, rating.Value)
+	return err
+}
+
+// Delete rating by user_id
+func (r *Repository) Delete(ctx context.Context, userID model.UserID) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM ratings WHERE user_id = $1", userID)
 	return err
 }

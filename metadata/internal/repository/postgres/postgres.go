@@ -51,10 +51,10 @@ func New() (*Repository, error) {
 }
 
 // Get retrieves movie metadata for by movie id.
-func (r *Repository) Get(ctx context.Context, id string) (*model.Metadata, error) {
+func (r *Repository) Get(ctx context.Context, id int64) (*model.Metadata, error) {
 	var title, description, director string
 	// Postgres uses $1 style placeholders
-	row := r.db.QueryRowContext(ctx, "SELECT title, description, director FROM movies WHERE id = $1", id)
+	row := r.db.QueryRowContext(ctx, "SELECT title, description, director FROM movies WHERE metadata_id = $1", id)
 	if err := row.Scan(&title, &description, &director); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, repository.ErrNotFound
@@ -62,7 +62,7 @@ func (r *Repository) Get(ctx context.Context, id string) (*model.Metadata, error
 		return nil, err
 	}
 	return &model.Metadata{
-		ID:          id,
+		MetadataID:  id,
 		Title:       title,
 		Description: description,
 		Director:    director,
@@ -70,15 +70,20 @@ func (r *Repository) Get(ctx context.Context, id string) (*model.Metadata, error
 }
 
 // Put adds or updates movie metadata for a given movie id.
-func (r *Repository) Put(ctx context.Context, id string, metadata *model.Metadata) error {
+func (r *Repository) Put(ctx context.Context, id int64, metadata *model.Metadata) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO movies (id, title, description, director)
+		`INSERT INTO movies (metadata_id, title, description, director)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (id) DO UPDATE
+         ON CONFLICT (metadata_id) DO UPDATE
            SET title = EXCLUDED.title,
                description = EXCLUDED.description,
                director = EXCLUDED.director`,
 		id, metadata.Title, metadata.Description, metadata.Director,
 	)
+	return err
+}
+
+func (r *Repository) Delete(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM movies WHERE metadata_id = $1", id)
 	return err
 }

@@ -11,16 +11,16 @@ type UserID string
 type RatingValue int
 
 type Rating struct {
-	RecordID   RecordID    `json:"recordId"`
-	RecordType RecordType  `json:"recordType"`
-	UserID     UserID      `json:"userId"`
+	RecordID   RecordID    `json:"record_id"`
+	RecordType RecordType  `json:"record_type"`
+	UserID     UserID      `json:"user_id"`
 	Value      RatingValue `json:"value"`
 }
 
 type RatingEvent struct {
 	Rating
-	ProviderID string          `json:"providerId"`
-	EventType  RatingEventType `json:"eventType"`
+	ProviderID string          `json:"provider_id"`
+	EventType  RatingEventType `json:"event_type"`
 }
 
 type RatingEventType string

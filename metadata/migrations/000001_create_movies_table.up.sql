@@ -1,5 +1,6 @@
+
 CREATE TABLE IF NOT EXISTS movies (
-  id TEXT PRIMARY KEY,
+  metadata_id BIGINT PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
   director TEXT,
