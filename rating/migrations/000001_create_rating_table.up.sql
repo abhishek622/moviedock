@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS ratings (
-    record_id BIGINT PRIMARY KEY NOT NULL,
+    record_id BIGINT PRIMARY KEY NOT NULL, -- metadata id of movie table
     record_type TEXT NOT NULL,
     user_id TEXT NOT NULL,
     value INT NOT NULL,

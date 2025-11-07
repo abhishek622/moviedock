@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS users (
   user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- use pgcrypto gen_random_uuid() if available
   email TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,           -- bcrypt hash (never plain password)
+  encrypted_password TEXT NOT NULL,           -- bcrypt hash (never plain password)
   full_name TEXT,
   role TEXT NOT NULL DEFAULT 'user',     -- simple single role string; consider roles table if complex
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
