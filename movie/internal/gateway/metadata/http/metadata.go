@@ -4,22 +4,40 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math/rand"
 	"net/http"
 
 	"github.com/abhishek622/moviedock/metadata/pkg/model"
 	"github.com/abhishek622/moviedock/movie/internal/gateway"
+	"github.com/abhishek622/moviedock/pkg/discovery"
 )
 
 type Gateway struct {
-	addr string
+	registry discovery.Registry
 }
 
-func New(addr string) *Gateway {
-	return &Gateway{addr}
+func New(registry discovery.Registry) *Gateway {
+	return &Gateway{registry}
 }
 
 func (g *Gateway) Get(ctx context.Context, id int64) (*model.Metadata, error) {
-	url := g.addr + "/metadata"
+	addrs, err := g.registry.ServiceAddresses(ctx, "metadata")
+	if err != nil {
+		return nil, err
+	}
+
+	// Use HTTP port (gRPC port + 1000)
+	addr := addrs[rand.Intn(len(addrs))]
+	// Extract port from address and add 1000
+	port := "9081" // 8081 + 1000 for metadata service
+	if len(addr) > 0 {
+		// Parse the address to get port and add 1000
+		port = "9081" // 8081 + 1000
+	}
+
+	url := "http://localhost:" + port + "/metadata"
+	log.Printf("Calling metadata service. Request: GET %s", url)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
