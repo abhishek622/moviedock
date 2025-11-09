@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package metadata.v1;
+
+option go_package = "github.com/abhishek622/moviedock/gen/metadata/v1;metadatav1";
+
+// -----------------------------
+// Core Metadata message
+// -----------------------------
+
+message Metadata {
+  string metadata_id = 1;
+  string title = 2;
+  string description = 3;
+  string director = 4;
+  int32 runtime = 5;
+}
+
+// -----------------------------
+// Service Requests & Responses
+// -----------------------------
+
+message GetMetadataRequest {
+  string movie_id = 1;
+}
+
+message GetMetadataResponse {
+  Metadata metadata = 1;
+}
+
+message UpdateMetadataRequest {
+  Metadata metadata = 1;
+}
+
+message UpdateMetadataResponse {
+  bool success = 1;
+}
+
+message DeleteMetadataRequest {
+  string movie_id = 1;
+}
+
+message DeleteMetadataResponse {
+  bool success = 1;
+}
+
+// -----------------------------
+// Metadata Service (gRPC)
+// -----------------------------
+
+service MetadataService {
+  rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse);
+  rpc UpdateMetadata(UpdateMetadataRequest) returns (UpdateMetadataResponse);
+  rpc DeleteMetadata(DeleteMetadataRequest) returns (DeleteMetadataResponse);
+}

@@ -1,13 +1,11 @@
 package http
 
 import (
-	"encoding/json"
-	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/abhishek622/moviedock/movie/internal/controller/movie"
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -18,26 +16,32 @@ func New(ctrl *movie.Controller) *Handler {
 	return &Handler{ctrl}
 }
 
-func (h *Handler) GetMovieDetails(w http.ResponseWriter, req *http.Request) {
-	idStr := req.FormValue("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+func (h *Handler) GetMovieDetails(c *gin.Context) {
+	idStr := c.Query("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id parameter is required"})
+		return
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
 		return
 	}
 
-	details, err := h.ctrl.Get(req.Context(), id)
-	if err != nil && errors.Is(err, movie.ErrNotFound) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	} else if err != nil {
-		log.Printf("Repository get error: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
+	details, err := h.ctrl.Get(c.Request.Context(), int32(id))
+	if err != nil {
+		if err == movie.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "movie not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(details); err != nil {
-		log.Printf("Response encode error: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, details)
+}
+
+func (h *Handler) RegisterRoutes(router *gin.Engine) {
+	router.GET("/api/v1/movie", h.GetMovieDetails)
 }

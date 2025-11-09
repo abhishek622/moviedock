@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package movie.v1;
+
+option go_package = "github.com/abhishek622/moviedock/gen/movie/v1;moviev1";
+
+import "google/protobuf/timestamp.proto";
+import "metadata/v1/metadata.proto";       
+
+// -----------------------------
+// Messages owned or exposed by MovieService
+// -----------------------------
+
+// movie representation (used in lists)
+message MovieSummary {
+  string movie_id = 1;
+  string title = 2;
+  string description = 3;
+  double rating = 4;          // Aggregated rating (fetched internally from RatingService)
+  int32 total_ratings = 5;    
+  google.protobuf.Timestamp release_date = 6;
+}
+
+// Full movie details (for detail view)
+message MovieDetails {
+  string movie_id = 1;
+  metadata.v1.Metadata metadata = 2;
+  double rating = 3;
+  int32 total_ratings = 4;
+}
+
+// -----------------------------
+// Requests & Responses
+// -----------------------------
+
+message GetMovieDetailsRequest {
+  string movie_id = 1;
+}
+
+message GetMovieDetailsResponse {
+  MovieDetails movie = 1;
+}
+
+message SearchMoviesRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message SearchMoviesResponse {
+  repeated MovieSummary movies = 1;
+  int32 total_results = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+message GetTopRatedMoviesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message GetTopRatedMoviesResponse {
+  repeated MovieSummary movies = 1;
+}
+
+// -----------------------------
+// Movie Service (gRPC interface)
+// -----------------------------
+
+service MovieService {
+  rpc GetMovieDetails(GetMovieDetailsRequest) returns (GetMovieDetailsResponse);
+  rpc SearchMovies(SearchMoviesRequest) returns (SearchMoviesResponse);
+  rpc GetTopRatedMovies(GetTopRatedMoviesRequest) returns (GetTopRatedMoviesResponse);
+}

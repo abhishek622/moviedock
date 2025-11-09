@@ -26,7 +26,7 @@ func New() (*Repository, error) {
 	port := os.Getenv("POSTGRES_PORT")
 	sslmode := os.Getenv("PGSSLMODE")
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, pass, host, port, dbname, sslmode)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?search_path=rating_service&sslmode=%s", user, pass, host, port, dbname, sslmode)
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

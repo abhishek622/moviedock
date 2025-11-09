@@ -1,6 +1,6 @@
 package model
 
-type RecordID int64
+type RecordID int32
 type RecordType string
 
 const (

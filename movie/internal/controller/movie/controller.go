@@ -18,7 +18,7 @@ type ratingGateway interface {
 }
 
 type metadataGateway interface {
-	Get(ctx context.Context, id int64) (*metadatamodel.Metadata, error)
+	GetMovieDetails(ctx context.Context, id int32) (*metadatamodel.Metadata, error)
 }
 
 // Controller defines a movie service controller.
@@ -33,8 +33,8 @@ func New(ratingGateway ratingGateway, metadataGateway metadataGateway) *Controll
 }
 
 // Get returns the movie details including the aggregated rating and movie metadata.
-func (c *Controller) Get(ctx context.Context, id int64) (*model.MovieDetails, error) {
-	metadata, err := c.metadataGateway.Get(ctx, id)
+func (c *Controller) Get(ctx context.Context, id int32) (*model.MovieDetails, error) {
+	metadata, err := c.metadataGateway.GetMovieDetails(ctx, id)
 	if err != nil && errors.Is(err, gateway.ErrNotFound) {
 		return nil, ErrNotFound
 	} else if err != nil {

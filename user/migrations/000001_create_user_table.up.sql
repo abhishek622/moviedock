@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS users (
   user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- use pgcrypto gen_random_uuid() if available
@@ -11,13 +11,21 @@ CREATE TABLE IF NOT EXISTS users (
   metadata JSONB DEFAULT '{}'::jsonb,    -- flexible per-user metadata
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 
 -- trigger for updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER update_user_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW

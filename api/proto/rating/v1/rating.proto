@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package rating.v1;
+
+option go_package = "github.com/abhishek622/moviedock/gen/rating/v1;ratingv1";
+
+// -----------------------------
+// Messages
+// -----------------------------
+
+// Aggregated rating for a record (e.g., movie, show)
+message AggregatedRating {
+  double average_rating = 1;
+  int32 total_ratings = 2;
+}
+
+// Individual rating (used when submitting or fetching a specific rating)
+message Rating {
+  string rating_id = 1;
+  string user_id = 2;         // Reference only — no full User object
+  string record_id = 3;       // e.g., movie ID
+  string record_type = 4;     // e.g., "movie", "tv_show"
+  int32 rating_value = 5;     // 1 to 10 
+}
+
+// -----------------------------
+// Requests & Responses
+// -----------------------------
+
+message GetAggregatedRatingRequest {
+  string record_id = 1;
+  string record_type = 2;
+}
+
+message GetAggregatedRatingResponse {
+  AggregatedRating rating = 1;
+}
+
+message GetRatingRequest {
+  string rating_id = 1;
+}
+
+message GetRatingResponse {
+  Rating rating = 1;
+}
+
+message SubmitRatingRequest {
+  string user_id = 1;
+  string record_id = 2;
+  string record_type = 3;
+  int32 rating_value = 4;
+}
+
+message SubmitRatingResponse {
+  string rating_id = 1;
+}
+
+message DeleteRatingRequest {
+  string rating_id = 1;
+  string user_id = 2;  // For authz: ensure user owns the rating
+}
+
+message DeleteRatingResponse {
+  bool success = 1;
+}
+
+// -----------------------------
+// Rating Service (gRPC)
+// -----------------------------
+
+service RatingService {
+  // Public/internal: get aggregated rating
+  rpc GetAggregatedRating(GetAggregatedRatingRequest) returns (GetAggregatedRatingResponse);
+
+  // Internal: manage individual ratings
+  rpc GetRating(GetRatingRequest) returns (GetRatingResponse);
+  rpc SubmitRating(SubmitRatingRequest) returns (SubmitRatingResponse);
+  rpc DeleteRating(DeleteRatingRequest) returns (DeleteRatingResponse);
+}

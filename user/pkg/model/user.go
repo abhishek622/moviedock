@@ -13,7 +13,7 @@ const (
 type User struct {
 	UserID            string                 `json:"user_id" db:"user_id"` // UUID
 	Email             string                 `json:"email" db:"email"`
-	EncryptedPassword string                 `json:"-" db:"encrypted_password"` // omit from JSON responses
+	EncryptedPassword string                 `json:"password" db:"encrypted_password"` // omit from JSON responses
 	FullName          string                 `json:"full_name,omitempty" db:"full_name"`
 	Role              Role                   `json:"role" db:"role"`
 	IsActive          bool                   `json:"is_active" db:"is_active"`
@@ -32,4 +32,18 @@ type UserToken struct {
 	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
 	Revoked        bool      `json:"revoked" db:"revoked"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+type UserLogin struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+}
+
+type UserResponse struct {
+	UserId       string `json:"user_id"`
+	FullName     string `json:"full_name"`
+	Email        string `json:"email"`
+	Role         string `json:"role"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }

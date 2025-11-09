@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -25,7 +26,7 @@ func New() (*Repository, error) {
 	port := os.Getenv("POSTGRES_PORT")
 	sslmode := os.Getenv("PGSSLMODE")
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, pass, host, port, dbname, sslmode)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?search_path=user_service&sslmode=%s", user, pass, host, port, dbname, sslmode)
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -48,32 +49,53 @@ func New() (*Repository, error) {
 	return &Repository{db: db}, nil
 }
 
-func (r *Repository) Get(ctx context.Context, id string) (*model.User, error) {
-	var user_id, full_name, email, encrypted_password, role, timezone string
-	var created_at, updated_at, last_login time.Time
+func (r *Repository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+	var user model.User
+	var lastLogin, createdAt, updatedAt sql.NullTime
 	var metadata map[string]interface{}
-	var is_active bool
 
-	row := r.db.QueryRowContext(ctx, "SELECT user_id, full_name, email, encrypted_password, role, is_active, timezone, last_login, metadata, created_at, updated_at WHERE user_id= $1", id)
-	if err := row.Scan(&user_id, &full_name, &email, &encrypted_password, &role, &is_active, &timezone, &last_login, &metadata, &created_at, &updated_at); err != nil {
-		if err == sql.ErrNoRows {
+	query := `SELECT user_id, full_name, email, encrypted_password, role, is_active, timezone, 
+             last_login, metadata, created_at, updated_at FROM users WHERE email = $1`
+
+	err := r.db.QueryRowContext(ctx, query, email).Scan(
+		&user.UserID, &user.FullName, &user.Email, &user.EncryptedPassword, &user.Role,
+		&user.IsActive, &user.Timezone, &lastLogin, &metadata, &createdAt, &updatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("error getting user by email: %w", err)
 	}
-	return &model.User{
-		UserID:            user_id,
-		FullName:          full_name,
-		Email:             email,
-		EncryptedPassword: encrypted_password,
-		Role:              model.Role(role),
-		IsActive:          is_active,
-		Timezone:          &timezone,
-		LastLogin:         &last_login,
-		Metadata:          metadata,
-		CreatedAt:         created_at,
-		UpdatedAt:         updated_at,
-	}, nil
+
+	if lastLogin.Valid {
+		user.LastLogin = &lastLogin.Time
+	}
+	if createdAt.Valid {
+		user.CreatedAt = createdAt.Time
+	}
+	if updatedAt.Valid {
+		user.UpdatedAt = updatedAt.Time
+	}
+
+	return &user, nil
+}
+
+func (r *Repository) GetUser(ctx context.Context, user_id string) (*model.UserResponse, error) {
+	var user model.UserResponse
+
+	err := r.db.QueryRowContext(ctx, `SELECT user_id, full_name, email, role FROM users WHERE user_id = $1`,
+		user_id).Scan(&user.UserId, &user.FullName, &user.Email, &user.Role)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrNotFound
+		}
+		return nil, fmt.Errorf("error getting user by id: %w", err)
+	}
+
+	return &user, nil
 }
 
 func (r *Repository) Put(ctx context.Context, id string, user *model.User) error {
@@ -94,7 +116,64 @@ func (r *Repository) Put(ctx context.Context, id string, user *model.User) error
 	return err
 }
 
+func (r *Repository) RegisterUser(ctx context.Context, user *model.User) (*model.User, error) {
+	query := `
+		INSERT INTO users (
+			full_name, email, encrypted_password, role, is_active, timezone
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING user_id, created_at, updated_at
+	`
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		user.FullName,
+		user.Email,
+		user.EncryptedPassword,
+		user.Role,
+		user.IsActive,
+		user.Timezone,
+	).Scan(&user.UserID, &user.CreatedAt, &user.UpdatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("error creating user: %w", err)
+	}
+
+	return user, nil
+}
+
 func (r *Repository) Delete(ctx context.Context, id string) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM users WHERE user_id = $1", id)
 	return err
+}
+
+// LoginUser retrieves a user by email for login purposes
+func (r *Repository) LoginUser(ctx context.Context, user *model.User) (*model.User, error) {
+	query := `
+		SELECT user_id, full_name, email, encrypted_password, role, is_active, timezone, created_at, updated_at
+		FROM users
+		WHERE email = $1
+	`
+
+	var u model.User
+	err := r.db.QueryRowContext(ctx, query, user.Email).Scan(
+		&u.UserID,
+		&u.FullName,
+		&u.Email,
+		&u.EncryptedPassword,
+		&u.Role,
+		&u.IsActive,
+		&u.Timezone,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+		return nil, fmt.Errorf("error retrieving user: %w", err)
+	}
+
+	return &u, nil
 }
